@@ -1,10 +1,5 @@
-import { Suspense, useEffect, useState } from 'react';
-import { Await, NavLink, useAsyncValue } from '@remix-run/react';
-import {
-  type CartViewPayload,
-  useAnalytics,
-  useOptimisticCart,
-} from '@shopify/hydrogen';
+import { Suspense } from 'react';
+import {  NavLink,  } from '@remix-run/react';
 import type { HeaderQuery, CartApiQueryFragment } from 'storefrontapi.generated';
 import { useAside } from '~/components/Aside';
 
