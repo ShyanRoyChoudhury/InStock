@@ -58,7 +58,7 @@ export function Aside({
       className={`overlay ${expanded ? 'expanded' : ''}`}
       role="dialog"
     >
-      <button className="close-outside" onClick={close} />
+      {/* <button className="close-outside" onClick={close} /> */}
       <aside>
         <header>
           <h3>{heading}</h3>

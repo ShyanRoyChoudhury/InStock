@@ -1,5 +1,5 @@
 import {Await, Link} from '@remix-run/react';
-import {Suspense, useId} from 'react';
+import {Suspense, useId, useState} from 'react';
 import type {
   CartApiQueryFragment,
   FooterQuery,
@@ -14,7 +14,10 @@ import {
   SearchFormPredictive,
 } from '~/components/SearchFormPredictive';
 import {SearchResultsPredictive} from '~/components/SearchResultsPredictive';
-
+import { PopUpContext } from '../../contexts/PopupContext';
+import { ProductContext } from 'contexts/ProductContext';
+import { ProductListContext } from 'contexts/ProductListContext'
+import { Product } from './ProductCard';
 interface PageLayoutProps {
   cart: Promise<CartApiQueryFragment | null>;
   footer: Promise<FooterQuery | null>;
@@ -32,8 +35,15 @@ export function PageLayout({
   isLoggedIn,
   publicStoreDomain,
 }: PageLayoutProps) {
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [productList, setProductList] = useState<Product[] | null>(null);
+
   return (
     <Aside.Provider>
+      <PopUpContext.Provider value={{ isModalOpen, setIsModalOpen}}>
+      <ProductContext.Provider value={{ product, setProduct }}>
+      <ProductListContext.Provider value={{ productList, setProductList }}>
       <CartAside cart={cart} />
       <SearchAside />
       <MobileMenuAside header={header} publicStoreDomain={publicStoreDomain} />
@@ -51,6 +61,9 @@ export function PageLayout({
         header={header}
         publicStoreDomain={publicStoreDomain}
       />
+      </ProductListContext.Provider>
+      </ProductContext.Provider>
+      </PopUpContext.Provider>
     </Aside.Provider>
   );
 }

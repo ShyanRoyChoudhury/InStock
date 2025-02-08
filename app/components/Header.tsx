@@ -24,29 +24,47 @@ export function Header({
   publicStoreDomain,
 }: HeaderProps) {
   const {shop, menu} = header;
-  return (
-    <header className="header">
-      <NavLink prefetch="intent" to="/" style={activeLinkStyle} end>
-        <strong>{shop.name}</strong>
+
+  // return (
+  //   <header className="header">
+  //     <NavLink prefetch="intent" to="/" style={activeLinkStyle} end>
+  //       <strong>{shop.name}</strong>
+  //     </NavLink>
+  //     <HeaderMenu
+  //       menu={menu}
+  //       viewport="desktop"
+  //       primaryDomainUrl={header.shop.primaryDomain.url}
+  //       publicStoreDomain={publicStoreDomain}
+  //     />
+  //     <HeaderCtas isLoggedIn={isLoggedIn} cart={cart} />
+  //   </header>
+  // );
+
+  return(
+    <div className='w-full z-40 flex py-2.5 px-5 transition-all duration-300 items-center'> 
+      <NavLink to="/">
+        <h1 className='text-xl font-semibold '>ContractualStore</h1>
       </NavLink>
+      
+      {/* Mobile Nav */}
+       <HeaderMenuMobileToggle />
+
+      {/* Desktop Nav */}
       <HeaderMenu
-        menu={menu}
         viewport="desktop"
         primaryDomainUrl={header.shop.primaryDomain.url}
         publicStoreDomain={publicStoreDomain}
       />
-      <HeaderCtas isLoggedIn={isLoggedIn} cart={cart} />
-    </header>
-  );
+    </div>
+  )
 }
 
 export function HeaderMenu({
-  menu,
   primaryDomainUrl,
   viewport,
   publicStoreDomain,
 }: {
-  menu: HeaderProps['header']['menu'];
+  // menu: HeaderProps['header']['menu'];
   primaryDomainUrl: HeaderProps['header']['shop']['primaryDomain']['url'];
   viewport: Viewport;
   publicStoreDomain: HeaderProps['publicStoreDomain'];
@@ -54,75 +72,110 @@ export function HeaderMenu({
   const className = `header-menu-${viewport}`;
   const {close} = useAside();
 
-  return (
-    <nav className={className} role="navigation">
+  const baseClassName = "transition-all duration-200 hover:text-amber-400 font-source relative after:content-[''] after:absolute after:abolute after:bottom-0 after:left-0 after:w-0 after:h-[1px] after:text-amber-400 after:transition-all after:duration-300 hover:after:w-full"
+  const desktopClassName = "flex items-center justify-center space-x-12 text-sm uppercase tracking-wider"
+  const mobileClassName = "flex flex-col px-6"
+  const menuItems = {
+    items: [
+      {
+        id: 'gid://shopify/MenuItem/461609500728',
+        resourceId: null,
+        tags: [],
+        title: 'Inventory',
+        type: 'HTTP',
+        url: '/inventory',
+        items: [],
+      },
+      {
+        id: 'gid://shopify/MenuItem/461609533496',
+        resourceId: null,
+        tags: [],
+        title: 'Products',
+        type: 'HTTP',
+        url: '/products/',
+        items: [],
+      }
+    ]
+  }
+
+  return(
+    <nav 
+      className={`${viewport === 'desktop' ? desktopClassName : mobileClassName}`}
+      role="navigation"
+    >
       {viewport === 'mobile' && (
         <NavLink
           end
           onClick={close}
           prefetch="intent"
-          style={activeLinkStyle}
+          className={({ isActive }) => `${baseClassName} ${isActive ? 'text-amber-400' : ''}`}
           to="/"
         >
           Home
         </NavLink>
       )}
-      {(menu || FALLBACK_HEADER_MENU).items.map((item) => {
+      
+      {(menuItems || FALLBACK_HEADER_MENU).items.map((item) => {
         if (!item.url) return null;
 
-        // if the url is internal, we strip the domain
-        const url =
-          item.url.includes('myshopify.com') ||
+        const url = item.url.includes('myshopify.com') ||
           item.url.includes(publicStoreDomain) ||
           item.url.includes(primaryDomainUrl)
             ? new URL(item.url).pathname
             : item.url;
+
         return (
           <NavLink
-            className="header-menu-item"
+            className={({ isActive }) => `${baseClassName} ${isActive ? 'text-amber-400' : ''}`}
             end
             key={item.id}
             onClick={close}
             prefetch="intent"
-            style={activeLinkStyle}
             to={url}
           >
             {item.title}
           </NavLink>
         );
       })}
+
+      <div>
+        {/* <HeaderCtas/> */}
+      </div>
     </nav>
   );
 }
 
 function HeaderCtas({
-  isLoggedIn,
-  cart,
-}: Pick<HeaderProps, 'isLoggedIn' | 'cart'>) {
+  // isLoggedIn,
+  // cart,
+}
+// : Pick<HeaderProps, 'isLoggedIn' | 'cart'>
+) 
+{
   return (
     <nav className="header-ctas" role="navigation">
       <HeaderMenuMobileToggle />
       <NavLink prefetch="intent" to="/account" style={activeLinkStyle}>
         <Suspense fallback="Sign in">
-          <Await resolve={isLoggedIn} errorElement="Sign in">
+          {/* <Await resolve={isLoggedIn} errorElement="Sign in">
             {(isLoggedIn) => (isLoggedIn ? 'Account' : 'Sign in')}
-          </Await>
+          </Await> */}
         </Suspense>
       </NavLink>
       <SearchToggle />
-      <CartToggle cart={cart} />
+      {/* <CartToggle cart={cart} /> */}
     </nav>
   );
 }
 
-function HeaderMenuMobileToggle() {
+function  HeaderMenuMobileToggle() {
   const {open} = useAside();
   return (
     <button
-      className="header-menu-mobile-toggle reset"
+      className="p-2 -mt-1.5 hover:text-amber-400 transition-colors duration-300"
       onClick={() => open('mobile')}
     >
-      <h3>☰</h3>
+      <h3 className='text-xl'>☰</h3>
     </button>
   );
 }
