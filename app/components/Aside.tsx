@@ -6,7 +6,7 @@ import {
   useState,
 } from 'react';
 
-type AsideType = 'search' | 'cart' | 'mobile' | 'closed';
+type AsideType = 'product' | 'mobile' | 'closed';
 type AsideContextValue = {
   type: AsideType;
   open: (mode: AsideType) => void;

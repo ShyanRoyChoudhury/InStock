@@ -10,7 +10,7 @@ import {
 } from '@shopify/hydrogen';
 import {ProductPrice} from '~/components/ProductPrice';
 import {ProductImage} from '~/components/ProductImage';
-import {ProductForm} from '~/components/ProductForm';
+// import {ProductForm} from '~/components/ProductForm';
 
 export const meta: MetaFunction<typeof loader> = ({data}) => {
   return [
@@ -107,10 +107,6 @@ export default function Product() {
           compareAtPrice={selectedVariant?.compareAtPrice}
         />
         <br />
-        <ProductForm
-          productOptions={productOptions}
-          selectedVariant={selectedVariant}
-        />
         <br />
         <br />
         <p>

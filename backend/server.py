@@ -275,4 +275,7 @@ async def update_product(product: UpdateProduct):
     data = json.loads(client.execute(mutation, variables=variables))
     
     print("data", data)
-    return JSONResponse(data)
+    return JSONResponse({
+            "status": "Success",
+            "data": data
+        })

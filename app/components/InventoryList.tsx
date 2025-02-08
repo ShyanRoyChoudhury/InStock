@@ -4,6 +4,7 @@ import { useContext, useEffect, useState } from "react"
 import { PopUpContext } from "contexts/PopupContext";
 import PopUpModal from "~/components/PopUpModal"
 import { useProductListContext } from "contexts/ProductListContext";
+import ProductModal from "./ProductModal";
 function InventoryList() {
     // const [products, setProducts] = useState(null);
     const productListContext = useProductListContext()
@@ -35,6 +36,7 @@ function InventoryList() {
   return (
     <div className="p-4 h-full overflow-y-scroll">
         <PopUpModal />
+        <ProductModal />
         <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
             <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>

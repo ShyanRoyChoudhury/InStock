@@ -1,11 +1,7 @@
 import { usePopUpContext } from 'contexts/PopupContext';
 import { useProductContext } from 'contexts/ProductContext';
-import { Modal } from 'flowbite-react'
+import { useProductFormContext } from 'contexts/ProductFormContext';
 import {Trash, Edit} from 'lucide-react'
-import { useState } from 'react';
-import { deleteProduct } from "~/api/deleteProduct"
-import { getProducts } from '~/api/getProductList'
-import PopUpModal from '~/components/PopUpModal';
 export interface Product {
     id: string
     title: string
@@ -21,6 +17,7 @@ export interface Product {
 
     const { setProduct } = useProductContext();
     const { setIsModalOpen } = usePopUpContext()
+    const { setIsProductFormModalOpen } = useProductFormContext()
     return (
         <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
             <td className="px-6 py-4">
@@ -39,7 +36,12 @@ export interface Product {
                 {product.amount}
             </td>
             <td className="px-6 py-4 flex space-x-2 items-center mt-2">
-                <div className="transition-all rounded-lg bg-gray-300 p-2 duration-200 bg-opacity-40 hover:bg-opacity-80">
+                <div className="transition-all rounded-lg bg-gray-300 p-2 duration-200 bg-opacity-40 hover:bg-opacity-80"
+                    onClick={()=> {
+                        setProduct(product)
+                        setIsProductFormModalOpen(true)
+                    }}
+                >
                     <Edit />
                 </div>
                 <div 
