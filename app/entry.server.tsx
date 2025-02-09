@@ -11,12 +11,17 @@ export default async function handleRequest(
   remixContext: EntryContext,
   context: AppLoadContext,
 ) {
+  const backendURL = 'https://shopify-app-be-371114668585.asia-south1.run.app';
+
   const {nonce, header, NonceProvider} = createContentSecurityPolicy({
     shop: {
       checkoutDomain: context.env.PUBLIC_CHECKOUT_DOMAIN,
       storeDomain: context.env.PUBLIC_STORE_DOMAIN,
     },
   });
+
+  // Modify the CSP header to include the backend URL in `connect-src`
+  const updatedCSP = `${header} connect-src ${backendURL};`;
 
   const body = await renderToReadableStream(
     <NonceProvider>
@@ -26,7 +31,6 @@ export default async function handleRequest(
       nonce,
       signal: request.signal,
       onError(error) {
-        // eslint-disable-next-line no-console
         console.error(error);
         responseStatusCode = 500;
       },
@@ -38,7 +42,7 @@ export default async function handleRequest(
   }
 
   responseHeaders.set('Content-Type', 'text/html');
-  responseHeaders.set('Content-Security-Policy', header);
+  responseHeaders.set('Content-Security-Policy', updatedCSP);
 
   return new Response(body, {
     headers: responseHeaders,

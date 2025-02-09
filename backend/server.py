@@ -8,8 +8,10 @@ from typing import Optional
 from pydantic import BaseModel
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.requests import Request
+from starlette.middleware.base import BaseHTTPMiddleware
 import os
-
+from create_product import create_product
 # Define a simple GraphQL schema
 @strawberry.type
 class Query:
@@ -21,16 +23,33 @@ class Query:
 schema = strawberry.Schema(Query)
 graphql_app = GraphQL(schema)
 
+class CSPMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self' http://localhost:* https://*.myshopify.com "
+            "01jkn78874eexs32jev2j4v73t-4cb94a47a86fc98efe79.myshopify.dev "
+            "shopify-app-be-371114668585.asia-south1.run.app "
+            "data: 'unsafe-inline' 'unsafe-eval'; "
+            "connect-src 'self' https://monorail-edge.shopifysvc.com "
+            "https://400wmv-ki.myshopify.com "
+            "shopify-app-be-371114668585.asia-south1.run.app;"
+        )
+        return response
+    
 app = FastAPI()
 
+# Add CSP middleware before CORS
+app.add_middleware(CSPMiddleware)
+
 origins = [
-    "http://localhost:3000",
+    "*",
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -67,7 +86,7 @@ def get_products():
     """
     client = shopify_client()
     data = json.loads(client.execute(product))
-    print("data", data)
+    # print("data", data)
     cleaned_data = data['data']['products']['edges']
     return JSONResponse({
         "status": "Success",
@@ -110,104 +129,103 @@ async def add_product(product: Product):
         print("Debug - Location Data:", location_data)
         print("Debug - Location ID:", location_id)
 
-        # Step 1: Create Product (Without Variants)
-        product_mutation = """
-        mutation productCreate($input: ProductInput!) {
-            productCreate(input: $input) {
-                product {
-                    id
-                    title
-                }
-                userErrors {
-                    field
-                    message
-                }
-            }
-        }
-        """
+        client = shopify_client()
 
-        product_variables = {
-            "input": {
-                "title": product.title,
-                "descriptionHtml": product.description or ""
-            }
-        }
+        product_id = await create_product(client=client)
 
-        product_result = client.execute(product_mutation, variables=product_variables)
-        product_data = json.loads(product_result) if isinstance(product_result, str) else product_result
-        print("product data", product_data)
-        if "errors" in product_data:
-            print("Debug - Product Creation Errors:", json.dumps(product_data["errors"], indent=2))
-            raise HTTPException(status_code=400, detail=product_data["errors"])
-        print("product id", product_data)
-        product_id = product_data['data']['productCreate']['product']['id']
-        print("product_id", product_id)
-        if not product_id:
-            raise HTTPException(status_code=400, detail="Failed to create product")
-
-        # Step 2: Create Variant for Product
         variant_mutation = """
-        mutation productVariantCreate($input: ProductVariantInput!) {
-            productVariantCreate(input: $input) {
-                productVariant {
-                    id
-                }
-                userErrors {
-                    field
-                    message
-                }
+        mutation AddVariantsToProduct($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+        productVariantsBulkCreate(productId: $productId, variants: $variants) {
+            productVariants {
+            id
+            title
+            selectedOptions {
+                name
+                value
             }
+            }
+            userErrors {
+            field
+            message
+            }
+        }
         }
         """
 
+        # Define the variables for the mutation
         variant_variables = {
-            "input": {
-                "productId": product_id,
-                "price": str(product.amount),
-            }
+            "productId": product_id,  # Ensure this is the correct Shopify product ID (gid://shopify/Product/123456789)
+            "variants": [
+                {
+                    "price": float(product.amount),  # Ensure price is in float format
+                    "optionValues": [
+                        {"name": "Black", "optionName": "Color"}  # Correctly setting variant option
+                    ]
+                }
+            ]
         }
 
+        # Execute the mutation
         variant_result = client.execute(variant_mutation, variables=variant_variables)
-        variant_data = json.loads(variant_result) if isinstance(variant_result, str) else variant_result
-        variant_id = variant_data.get("data", {}).get("productVariantCreate", {}).get("productVariant", {}).get("id")
+        variant_data = json.loads(variant_result)
 
-        print("Debug - Created Variant ID:", variant_id)
+        # Debugging output
+        print("Debug - Variant Data:", json.dumps(variant_data, indent=2))
 
-        if not variant_id:
-            raise HTTPException(status_code=400, detail="Failed to create product variant")
+        # Check for errors
+        if "errors" in variant_data or variant_data.get("data", {}).get("productVariantsBulkCreate", {}).get("userErrors"):
+            print("Debug - Variant Creation Errors:", json.dumps(variant_data["errors"], indent=2) if "errors" in variant_data else json.dumps(variant_data["data"]["productVariantsBulkCreate"]["userErrors"], indent=2))
 
         # Step 3: Adjust Inventory
         inventory_mutation = """
-        mutation inventoryAdjustQuantity($input: InventoryAdjustQuantityInput!) {
-            inventoryAdjustQuantity(input: $input) {
-                inventoryLevel {
-                    id
-                    available
-                }
-                userErrors {
-                    field
-                    message
-                }
+        mutation ActivateInventoryItem($inventoryItemId: ID!, $locationId: ID!, $available: Int!) {
+        inventoryActivate(
+            inventoryItemId: $inventoryItemId,
+            locationId: $locationId,
+            available: $available
+        ) {
+            inventoryLevel {
+            id
+            quantities(names: ["available"]) {
+                name
+                quantity
             }
+            item {
+                id
+            }
+            location {
+                id
+            }
+            }
+            userErrors {
+            field
+            message
+            }
+        }
         }
         """
 
+        # Define inventory activation variables
         inventory_variables = {
-            "input": {
-                "inventoryLevelId": location_id,
-                "availableDelta": product.totalInventory
-            }
+            "inventoryItemId": inventory_item_id,  # Use the retrieved inventoryItem ID
+            "locationId": "gid://shopify/Location/346779380",  # Replace with correct location ID
+            "available": 42  # Set initial stock quantity
         }
 
+        # Execute inventory activation
         inventory_result = client.execute(inventory_mutation, variables=inventory_variables)
-        inventory_data = json.loads(inventory_result) if isinstance(inventory_result, str) else inventory_result
+        inventory_data = json.loads(inventory_result)
 
-        print("Debug - Inventory Update Result:", inventory_data)
+        print("Debug - Inventory Data:", json.dumps(inventory_data, indent=2))
+
+        # Check for errors
+        if "errors" in inventory_data or inventory_data.get("data", {}).get("inventoryActivate", {}).get("userErrors"):
+            print("Debug - Inventory Activation Errors:", json.dumps(inventory_data["errors"], indent=2) if "errors" in inventory_data else json.dumps(inventory_data["data"]["inventoryActivate"]["userErrors"], indent=2))
 
         return {
             "message": "Product created successfully",
             "product_id": product_id,
-            "variant_id": variant_id
+            # "variant_id": variant_id
         }
 
     except Exception as e:
@@ -273,8 +291,63 @@ async def update_product(product: UpdateProduct):
 
     client = shopify_client()
     data = json.loads(client.execute(mutation, variables=variables))
+
     
-    print("data", data)
+    
+    query = """
+        query MyQuery {
+        publications(first: 10) {
+            edges {
+            node {
+                id
+                autoPublish
+            }
+            }
+        }
+        }
+    """
+
+    response = json.loads(client.execute(query))
+    print("data in publication", response)
+
+    publications = response.get("data", {}).get("publications", {}).get("edges", [])
+
+    if not publications:
+        print("No publications found.")
+    else:
+        print("Fetched Publications:", publications)
+
+        # Step 2: Mutation to publish each publication
+        mutation = """
+            mutation PublishPublication($id: ID!) {
+            publishablePublish(publishableId: $id, publicationId: $id) {
+                publishable {
+                id
+                }
+                userErrors {
+                field
+                message
+                }
+            }
+            }
+        """
+
+        # Loop through all publications and publish them
+        for pub in publications:
+            publication_id = pub["node"]["id"]
+            print(f"Publishing: {publication_id}")
+
+            # Execute publish mutation
+            publish_response = json.loads(client.execute(mutation, variables={"id": publication_id}))
+
+            # Check for errors
+            errors = publish_response.get("data", {}).get("publishablePublish", {}).get("userErrors", [])
+            if errors:
+                print(f"Error publishing {publication_id}: {errors}")
+            else:
+                print(f"Successfully published: {publication_id}")
+    
+    
     return JSONResponse({
             "status": "Success",
             "data": data
