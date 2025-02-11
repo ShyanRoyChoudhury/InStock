@@ -11,7 +11,8 @@ export default async function handleRequest(
   remixContext: EntryContext,
   context: AppLoadContext,
 ) {
-  const backendURL = 'https://shopify-app-be-371114668585.asia-south1.run.app';
+  // const backendURL = 'https://shopify-app-be-371114668585.asia-south1.run.app';
+  const backendURL = 'http://127.0.0.1:8000';
 
   const {nonce, header, NonceProvider} = createContentSecurityPolicy({
     shop: {

@@ -58,9 +58,22 @@ function loadDeferredData({context}: LoaderFunctionArgs) {
 export default function Homepage() {
   const data = useLoaderData<typeof loader>();
   return (
-    <div className="home">
-      <FeaturedCollection collection={data.featuredCollection} />
-      <RecommendedProducts products={data.recommendedProducts} />
+    <div className="home relative md:p-8">
+      {/* <FeaturedCollection collection={data.featuredCollection} /> */}
+      {/* <RecommendedProducts products={data.recommendedProducts} /> */}
+      <div className='z-0 md:p-4 pt-20 '>
+        <Image className='hidden lg:block rounded-xl' src='app/assets/pexels-rachel-claire-5863630.jpg'/>
+        <Image className='lg:hidden rounded-xl' src='app/assets/pexels-karolina-grabowska-4464817.jpg'/>
+
+      </div>
+      <div className="absolute md:top-2/4 top-2/4 lg:top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full">
+        <div className=' text-center'>
+          <h1 className='text-6xl md:text-8xl font-semibold font-sans text-white text-opacity-80 md:w-[80%] lg:w-full md:inline-block'
+          >
+            ONE STOP DESTINATION TO MANAGE YOUR INVENTORY
+          </h1>
+        </div>
+      </div>
     </div>
   );
 }
@@ -104,6 +117,7 @@ function RecommendedProducts({
                     <Link
                       key={product.id}
                       className="recommended-product"
+                      onClick={()=> console.log("product", product)}
                       to={`/products/${product.handle}`}
                     >
                       <Image

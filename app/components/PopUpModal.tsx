@@ -1,6 +1,5 @@
 import React, { useContext, useState } from 'react';
 import { X, AlertCircle } from 'lucide-react';
-import { Product } from './ProductCard';
 import { deleteProduct } from '~/api/deleteProduct';
 import { getProducts } from '~/api/getProductList';
 import { PopUpContext } from 'contexts/PopupContext';
@@ -35,7 +34,8 @@ const Modal = () => {
                         title: product.node.title,
                         description: product.node.description,
                         image: product.node.featuredImage?.url || "https://archive.org/download/placeholder-image/placeholder-image.jpg",
-                        amount: product.node.priceRange.maxVariantPrice.amount
+                        amount: product.node.priceRange.maxVariantPrice.amount,
+                        handle: product?.node?.handle
                     }));
         
                     setProductList(cleanedRes);

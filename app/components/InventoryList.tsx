@@ -18,8 +18,9 @@ function InventoryList() {
                 id: product.node.id,
                 title: product.node.title,
                 description: product.node.description,
-                image: product.node.featuredImage?.url || "https://archive.org/download/placeholder-image/placeholder-image.jpg",
-                amount: product.node.priceRange.maxVariantPrice.amount
+                image: product.node.featuredImage?.url || "app/assets/photo.png",
+                amount: product.node.priceRange.maxVariantPrice.amount,
+                handle: product?.node?.handle
             }));
 
             setProductList(cleanedRes);

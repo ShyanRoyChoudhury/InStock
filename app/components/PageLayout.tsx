@@ -6,14 +6,7 @@ import type {
   HeaderQuery,
 } from 'storefrontapi.generated';
 import {Aside} from '~/components/Aside';
-import {Footer} from '~/components/Footer';
 import {Header, HeaderMenu} from '~/components/Header';
-import {CartMain} from '~/components/CartMain';
-import {
-  SEARCH_ENDPOINT,
-  SearchFormPredictive,
-} from '~/components/SearchFormPredictive';
-import {SearchResultsPredictive} from '~/components/SearchResultsPredictive';
 import { PopUpContext } from '../../contexts/PopupContext';
 import { ProductContext } from 'contexts/ProductContext';
 import { ProductListContext } from 'contexts/ProductListContext'
@@ -42,58 +35,40 @@ export function PageLayout({
   const [productList, setProductList] = useState<Product[] | null>(null);
 
   return (
-    <Aside.Provider>
-      <PopUpContext.Provider value={{ isModalOpen, setIsModalOpen}}>
-      <ProductContext.Provider value={{ product, setProduct }}>
-      <ProductListContext.Provider value={{ productList, setProductList }}>
-      <ProductModalContext.Provider value={{ isProductFormModalOpen, setIsProductFormModalOpen }}>
-      <ProductAside />
-      <MobileMenuAside header={header} publicStoreDomain={publicStoreDomain} />
-      {header && (
-        <Header
-          header={header}
-          cart={cart}
-          isLoggedIn={isLoggedIn}
-          publicStoreDomain={publicStoreDomain}
-        />
-      )}
-      <main>{children}</main>
-      <Footer
-        footer={footer}
-        header={header}
-        publicStoreDomain={publicStoreDomain}
-      />
-      </ProductModalContext.Provider>
-      </ProductListContext.Provider>
-      </ProductContext.Provider>
-      </PopUpContext.Provider>
-    </Aside.Provider>
+    <div className='relative'>
+      <Aside.Provider>
+        <PopUpContext.Provider value={{ isModalOpen, setIsModalOpen}}>
+        <ProductContext.Provider value={{ product, setProduct }}>
+        <ProductListContext.Provider value={{ productList, setProductList }}>
+        <ProductModalContext.Provider value={{ isProductFormModalOpen, setIsProductFormModalOpen }}>
+        <MobileMenuAside header={header} publicStoreDomain={publicStoreDomain} />
+        <div className="fixed top-0 left-0 w-full z-50 bg-white shadow-md">
+        {header && (
+            <Header
+              header={header}
+              cart={cart}
+              isLoggedIn={isLoggedIn}
+              publicStoreDomain={publicStoreDomain}
+            />
+          )}
+        </div>
+        <main className="pt-[var(--header-height)]">
+  {children}
+</main>
+        </ProductModalContext.Provider>
+        </ProductListContext.Provider>
+        </ProductContext.Provider>
+        </PopUpContext.Provider>
+      </Aside.Provider>
+    </div>
   );
 }
 
-// function CartAside({cart}: {cart: PageLayoutProps['cart']}) {
-//   return (
-//     <Aside type="cart" heading="CART">
-//       <Suspense fallback={<p>Loading cart ...</p>}>
-//         <Await resolve={cart}>
-//           {(cart) => {
-//             return <CartMain cart={cart} layout="aside" />;
-//           }}
-//         </Await>
-//       </Suspense>
-//     </Aside>
-//   );
-// }
 
 function ProductAside() {
   return (
     <Aside type="product" heading="CART">
       <Suspense fallback={<p>Loading cart ...</p>}>
-        {/* <Await resolve={cart}>
-          {(cart) => {
-            return <CartMain cart={cart} layout="aside" />;
-          }}
-        </Await> */}
       </Suspense>
     </Aside>
   );

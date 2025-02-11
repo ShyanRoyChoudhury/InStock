@@ -1,3 +1,4 @@
+import { useNavigate } from '@remix-run/react';
 import { usePopUpContext } from 'contexts/PopupContext';
 import { useProductContext } from 'contexts/ProductContext';
 import { useProductFormContext } from 'contexts/ProductFormContext';
@@ -9,74 +10,37 @@ export interface Product {
     image: string
     totalInventory: number
     url: string
-    amount: number
-  }
-
-  
-//   export default function ProductCard({ product }: { product: Product }) {
-
-//     const { setProduct } = useProductContext();
-//     const { setIsModalOpen } = usePopUpContext()
-//     const { setIsProductFormModalOpen } = useProductFormContext()
-//     return (
-//         <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
-//             <td className="px-6 py-4">
-//                 {product?.image && <img src={product.image} alt={product.title} className="w-16 h-16 object-cover" />}
-//             </td>
-//             <th scope="row" className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-//                 {product.title}
-//             </th>
-//             <td className="px-6 py-4">
-//                 {product.totalInventory}
-//             </td>
-//             <td className="px-6 py-4">
-//                 {product.description}
-//             </td>
-//             <td className="px-6 py-4">
-//                 {product.amount}
-//             </td>
-//             <td className="px-6 py-4 flex space-x-2 items-center mt-2">
-//                 <div className="transition-all rounded-lg bg-gray-300 p-2 duration-200 bg-opacity-40 hover:bg-opacity-80"
-//                     onClick={()=> {
-//                         setProduct(product)
-//                         setIsProductFormModalOpen(true)
-//                     }}
-//                 >
-//                     <Edit />
-//                 </div>
-//                 <div 
-//                     className="transition-all rounded-lg bg-gray-300 duration-200 p-2 bg-opacity-40 hover:bg-opacity-80" 
-//                     onClick={() => {
-//                         setProduct(product)
-//                         setIsModalOpen(true)
-//                     }} 
-//                 >
-//                     <Trash className="text-red-500"/>
-//                 </div>
-//             </td>
-//         </tr>   
-//     )
-// }
-
+    amount: number;
+    handle: string;
+    variants: any;
+    prices: any;
+}
 
 export default function ProductCard({ product }: { product: Product }) {
     const { setProduct } = useProductContext();
     const { setIsModalOpen } = usePopUpContext();
     const { setIsProductFormModalOpen } = useProductFormContext();
-
+    const navigate = useNavigate()
+    const handleViewProduct = () => {
+        const productId = product?.id.split('/').pop(); // Extract the numeric part
+        navigate(`/productpage/${productId}`);
+    }
     return (
         <>
             {/* Desktop View: Table Row */}
-            <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hidden sm:table-row">
-                <td className="px-4 py-2">
-                    <img src={product.image} alt={product.title} className="w-12 h-12 object-cover rounded-md" />
+            <tr 
+                className="bg-white border-b hover:bg-gray-100 dark:bg-gray-800
+                    dark:border-gray-700 hidden sm:table-row"
+            >
+                <td className="px-4 py-2" onClick={handleViewProduct}>
+                    <img src={product?.image} alt={product.title} className="w-12 h-12 object-cover rounded-md" />
                 </td>
                 <th className="px-4 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                     {product.title}
                 </th>
-                <td className="px-4 py-2 hidden sm:table-cell">{product.totalInventory}</td>
-                <td className="px-4 py-2 hidden md:table-cell">{product.description}</td>
-                <td className="px-4 py-2">{product.amount}</td>
+                <td className="px-4 py-2 hidden sm:table-cell" onClick={handleViewProduct}>{product.totalInventory}</td>
+                <td className="px-4 py-2 hidden md:table-cell" onClick={handleViewProduct}>{product.description}</td>
+                <td className="px-4 py-2" onClick={handleViewProduct}>{product.amount}</td>
                 <td className="px-4 py-2 flex space-x-2 items-center">
                     <button
                         className="transition-all rounded-lg bg-gray-300 p-2 hover:bg-opacity-80"
@@ -90,7 +54,7 @@ export default function ProductCard({ product }: { product: Product }) {
                     <button
                         className="transition-all rounded-lg bg-gray-300 p-2 hover:bg-opacity-80"
                         onClick={() => {
-                            setProduct(product);
+                            setProduct(null);
                             setIsModalOpen(true);
                         }}
                     >

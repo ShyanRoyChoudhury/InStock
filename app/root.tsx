@@ -155,13 +155,7 @@ export function Layout({children}: {children?: React.ReactNode}) {
       </head>
       <body>
         {data ? (
-          <Analytics.Provider
-            cart={data.cart}
-            shop={data.shop}
-            consent={data.consent}
-          >
             <PageLayout {...data}>{children}</PageLayout>
-          </Analytics.Provider>
         ) : (
           children
         )}
