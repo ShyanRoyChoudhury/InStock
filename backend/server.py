@@ -11,7 +11,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 import os
+import hmac
+import hashlib
+import base64
+from sqlalchemy.orm import Session
+from fastapi import Depends
+from database import get_db
 from create_product import create_product
+
 # Define a simple GraphQL schema
 @strawberry.type
 class Query:
@@ -59,6 +66,55 @@ app.add_websocket_route("/graphql", graphql_app)
 
 
 token = os.getenv("TOKEN")
+
+def verify_webhook(request: Request, body: bytes):
+    """Verify Shopify webhook using HMAC-SHA256 signature."""
+    hmac_header = request.headers.get("X-Shopify-Hmac-SHA256")
+    
+    # Compute HMAC signature
+    hash_digest = hmac.new(
+        token.encode("utf-8"), body, hashlib.sha256
+    ).digest()
+    
+    computed_hmac = base64.b64encode(hash_digest).decode("utf-8")
+
+    # if not hmac.compare_digest(computed_hmac, hmac_header):
+    #     raise HTTPException(status_code=403, detail="Unauthorized Webhook")
+
+@app.post("/webhook/product/create")
+async def handle_product_update(request: Request, db: Session = Depends(get_db)):
+    """Receives product creation update from Shopify and updates the database."""
+    body = await request.body()
+    print("body", body)
+    verify_webhook(request, body)  # Validate webhook authenticity
+    
+    payload = await request.json()
+    shopify_id = payload.get("id")
+    title = payload.get("title")
+    # updated_at = payload.get("updated_at")
+    price = payload.get("variants")[0]["price"]
+    
+    # Update product in database
+    # product = db.query(Product).filter_by(shopify_id=shopify_id).first()
+
+
+    print("price", price)
+    # if product:
+    #     product.title = title
+    #     product.updated_at = updated_at
+    #     product.price = float(price)
+    # else:
+    #     db.add(Product(
+    #         shopify_id=shopify_id,
+    #         title=title,
+    #         updated_at=updated_at,
+    #         price=float(price)
+    #     ))
+
+    # db.commit()
+    
+    return {"message": "Product updated successfully"}
+
 
 @app.get("/products")
 def get_products():

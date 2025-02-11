@@ -1,25 +1,43 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text, Float, Time
 from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import UUID
 
-from .database import Base
 
 
+import uuid
+from database import Base
 
 class Product(Base):
-    __tablename__ = "users"
-    id = Column(Integer,primary_key=True,index=True)
-    name = Column(String(255),index=True)
-    email = Column(String(255), unique=True, index=True)
-    todos = relationship("Todo",back_populates="owner")
-    is_active = Column(Boolean,default=False)
+    __tablename__ = "product"
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
+    shopify_id = Column(String(255),index=True)
+    title = Column(String(255),index=True)
+    description = Column(String(255))
+    is_deleted = Column(Boolean,default=False)
+    amount = Column(Float, default=0.0)
+
+    images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan")
+    variant = relationship("ProductVariant", back_populates="product", cascade="all, delete-orphan")
 
 
+class ProductImage(Base):
+    __tablename__ = "productImage"
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
+    shopify_id = Column(String(255),index=True)
+    url = Column(Text)
+    product_id = Column(Integer, ForeignKey("product.id"))
 
-class Todo(Base):
-    __tablename__ = "todos"
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(255), index=True)
-    description = Column(String(255), index=True)
-    owner_id = Column(Integer, ForeignKey("users.id"))
+    product = relationship("Product", back_populates="images")
 
-    owner = relationship("User",back_populates="todos")
+
+class ProductVariant(Base):
+    __tablename__ = "productVariant"
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
+    shopify_id = Column(String(255),index=True)
+    title = Column(String(255),index=True)
+    price = Column(Float, default=0.0)
+    url = Column(Text)
+    product_id = Column(Integer, ForeignKey("product.id"))
+    created_at = Column(Time)
+
+    product = relationship("Product", back_populates="variant")
