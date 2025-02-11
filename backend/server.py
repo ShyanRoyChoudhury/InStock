@@ -17,8 +17,10 @@ import base64
 from sqlalchemy.orm import Session
 from fastapi import Depends
 from database import get_db
-from create_product import create_product
+# from create_product import create_product
+from test_prod2 import create_product
 
+from schemas.add_product_validation import  Product
 # Define a simple GraphQL schema
 @strawberry.type
 class Query:
@@ -29,6 +31,8 @@ class Query:
 # Create a FastAPI app and integrate GraphQL
 schema = strawberry.Schema(Query)
 graphql_app = GraphQL(schema)
+
+
 
 class CSPMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -66,6 +70,8 @@ app.add_websocket_route("/graphql", graphql_app)
 
 
 token = os.getenv("TOKEN")
+
+client = shopify_client()
 
 def verify_webhook(request: Request, body: bytes):
     """Verify Shopify webhook using HMAC-SHA256 signature."""
@@ -120,18 +126,22 @@ async def handle_product_update(request: Request, db: Session = Depends(get_db))
 def get_products():
     product = """
 {
-    products(first:10) {
+    products(first:15) {
     edges {
       node {
         totalInventory
         id
         title
         description
+        handle
         featuredImage {
           url
         }
         priceRange {
           maxVariantPrice {
+            amount
+        }
+        minVariantPrice {
             amount
         }
         }
@@ -140,7 +150,6 @@ def get_products():
   }
 }
     """
-    client = shopify_client()
     data = json.loads(client.execute(product))
     # print("data", data)
     cleaned_data = data['data']['products']['edges']
@@ -150,138 +159,35 @@ def get_products():
     })
 # Run the server with: uvicorn server:app --reload
 
-class Product(BaseModel):
-    title: str
-    totalInventory: int  
-    description: Optional[str] = None
-    amount: float
 
 
+# @app.post("/add-product")
+# async def add_product(product: Product):    
+#     try:
+#         print("product", product)
+#         client = shopify_client()
+#         print("client initiated")
+#         product_id = await create_product(client=client, product=product)
+#         return {
+#             "message": "Product created successfully",
+#             "product_id": product_id,
+#             # "variant_id": variant_id
+#         }
+
+#     except Exception as e:
+#         print("Debug - Exception:", str(e))
+#         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/add-product")
-async def add_product(product: Product):
-
-    # Query to get the first location ID
-    location_query = """
-    query {
-        locations(first: 1) {
-            edges {
-                node {
-                    id
-                }
-            }
-        }
-    }
-    """
-    
-    client = shopify_client()
-    
+async def add_product(product: Product):    
     try:
-        # Get the location ID
-        location_result = client.execute(location_query)
-        location_data = json.loads(location_result)
-        location_id = location_data['data']['locations']['edges'][0]['node']['id']
-
-        print("Debug - Location Data:", location_data)
-        print("Debug - Location ID:", location_id)
-
+        
         client = shopify_client()
-
-        product_id = await create_product(client=client)
-
-        variant_mutation = """
-        mutation AddVariantsToProduct($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
-        productVariantsBulkCreate(productId: $productId, variants: $variants) {
-            productVariants {
-            id
-            title
-            selectedOptions {
-                name
-                value
-            }
-            }
-            userErrors {
-            field
-            message
-            }
-        }
-        }
-        """
-
-        # Define the variables for the mutation
-        variant_variables = {
-            "productId": product_id,  # Ensure this is the correct Shopify product ID (gid://shopify/Product/123456789)
-            "variants": [
-                {
-                    "price": float(product.amount),  # Ensure price is in float format
-                    "optionValues": [
-                        {"name": "Black", "optionName": "Color"}  # Correctly setting variant option
-                    ]
-                }
-            ]
-        }
-
-        # Execute the mutation
-        variant_result = client.execute(variant_mutation, variables=variant_variables)
-        variant_data = json.loads(variant_result)
-
-        # Debugging output
-        print("Debug - Variant Data:", json.dumps(variant_data, indent=2))
-
-        # Check for errors
-        if "errors" in variant_data or variant_data.get("data", {}).get("productVariantsBulkCreate", {}).get("userErrors"):
-            print("Debug - Variant Creation Errors:", json.dumps(variant_data["errors"], indent=2) if "errors" in variant_data else json.dumps(variant_data["data"]["productVariantsBulkCreate"]["userErrors"], indent=2))
-
-        # Step 3: Adjust Inventory
-        inventory_mutation = """
-        mutation ActivateInventoryItem($inventoryItemId: ID!, $locationId: ID!, $available: Int!) {
-        inventoryActivate(
-            inventoryItemId: $inventoryItemId,
-            locationId: $locationId,
-            available: $available
-        ) {
-            inventoryLevel {
-            id
-            quantities(names: ["available"]) {
-                name
-                quantity
-            }
-            item {
-                id
-            }
-            location {
-                id
-            }
-            }
-            userErrors {
-            field
-            message
-            }
-        }
-        }
-        """
-
-        # Define inventory activation variables
-        inventory_variables = {
-            "inventoryItemId": inventory_item_id,  # Use the retrieved inventoryItem ID
-            "locationId": "gid://shopify/Location/346779380",  # Replace with correct location ID
-            "available": 42  # Set initial stock quantity
-        }
-
-        # Execute inventory activation
-        inventory_result = client.execute(inventory_mutation, variables=inventory_variables)
-        inventory_data = json.loads(inventory_result)
-
-        print("Debug - Inventory Data:", json.dumps(inventory_data, indent=2))
-
-        # Check for errors
-        if "errors" in inventory_data or inventory_data.get("data", {}).get("inventoryActivate", {}).get("userErrors"):
-            print("Debug - Inventory Activation Errors:", json.dumps(inventory_data["errors"], indent=2) if "errors" in inventory_data else json.dumps(inventory_data["data"]["inventoryActivate"]["userErrors"], indent=2))
-
+        print("client initiated")
+        product_id = await create_product(client=client, product=product)
         return {
             "message": "Product created successfully",
             "product_id": product_id,
-            # "variant_id": variant_id
         }
 
     except Exception as e:
@@ -408,3 +314,55 @@ async def update_product(product: UpdateProduct):
             "status": "Success",
             "data": data
         })
+
+
+
+
+@app.get('/product')
+async def get_product(id: str):
+    try:
+        query=f"""
+            query GetProductDetails {{
+                product(id: "{id}") {{
+                    id
+                    title
+                    descriptionHtml
+                    handle
+                    priceRange {{
+                        minVariantPrice {{
+                            amount
+                            currencyCode
+                        }}
+                        maxVariantPrice {{
+                            amount
+                            currencyCode
+                        }}
+                    }}
+                    images(first: 1) {{
+                        nodes {{
+                            id
+                            url
+                            altText
+                            width
+                            height
+                        }}
+                    }}
+                }} 
+            }}
+            """
+        data = json.loads(client.execute(query))
+        if data is None:
+            return JSONResponse({
+            "status": "Success",
+            "data": None
+        })
+
+        print("data", data)
+        
+        return JSONResponse({
+            "status": "Success",
+            "data": data['data']['product']
+        })
+    except Exception as e:
+        print("Debug - Exception:", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
