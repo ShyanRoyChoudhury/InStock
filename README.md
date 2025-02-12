@@ -1,45 +1,86 @@
-# Hydrogen template: Skeleton
+# Instock
 
-Hydrogen is Shopify’s stack for headless commerce. Hydrogen is designed to dovetail with [Remix](https://remix.run/), Shopify’s full stack web framework. This template contains a **minimal setup** of components, queries and tooling to get started with Hydrogen.
+## Overview
 
-[Check out Hydrogen docs](https://shopify.dev/custom-storefronts/hydrogen)
-[Get familiar with Remix](https://remix.run/docs/en/v1)
+This project is a Shopify Inventory Management app consisting of a backend service and a frontend built using Shopify Hydrogen. The backend is deployed on Google Cloud Run, db on google cloud sql, while the frontend is deployed using Shopify Hydrogen's deployment tool.
 
-## What's included
+## Table of Contents 
+* Backend
 
-- Remix
-- Hydrogen
-- Oxygen
-- Vite
-- Shopify CLI
-- ESLint
-- Prettier
-- GraphQL generator
-- TypeScript and JavaScript flavors
-- Minimal setup of components and routes
+  - Running Locally
 
-## Getting started
+  - Building and Deploying to Cloud Run
 
-**Requirements:**
+* Frontend
 
-- Node.js version 18.0.0 or higher
+  - Running Locally
 
-```bash
-npm create @shopify/hydrogen@latest
+  - Deploying
+
+* Environment Variables
+
+### 📍 Note: This setup doc assumes, you already have db credentials
+
+## Backend
+
+### Running Locally
+
+To run the backend locally, follow these steps:
+
+```sh
+cd backend
+cp .env.example .env
+python3 -m venv venv
+source venv/bin/activate
+uvicorn server:app --reload
 ```
 
-## Building for production
+### Building and Deploying to Cloud Run
 
-```bash
-npm run build
+To build and deploy the backend service to Google Cloud Run:
+```sh
+cd /Instore/backend
+
+# Build the Docker image
+docker buildx build --no-cache -t shopify-app-be --platform linux/amd64 .
+
+# Tag the image
+docker tag <IMAGE_ID> gcr.io/shopifyapp-450410/shopify-app-be
+
+# Push the image to Google Container Registry
+docker push gcr.io/<GOOGLE_CLOUD_PROJECT_ID>/shopify-app-be  
 ```
 
-## Local development
+Replace <IMAGE_ID>, <GOOGLE_CLOUD_PROJECT_ID> with the actual ID of the built image & google cloud project ID.
 
-```bash
+## Frontend
+
+### Running Locally
+
+To run the frontend locally:
+```sh
+cd Instore
+
+# Ensure you are using Node.js v23.7.0
+nvm use 23.7.0
+
+# Install dependencies
+npm install
+
+# Start the development server
 npm run dev
 ```
 
-## Setup for using Customer Account API (`/account` section)
+### Deploying
 
-Follow step 1 and 2 of <https://shopify.dev/docs/custom-storefronts/building-with-the-customer-account-api/hydrogen#step-1-set-up-a-public-domain-for-local-development>
+To deploy the frontend using Shopify Hydrogen:
+```sh
+npx shopify hydrogen deploy --force
+```
+
+## Environment Variables
+
+Ensure you have a .env file configured for backend. Copy the example .env.example file and modify it accordingly.
+
+
+## ✅App is running at http://localhost:3000 
