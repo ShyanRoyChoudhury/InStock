@@ -3,6 +3,7 @@ import {RemixServer} from '@remix-run/react';
 import isbot from 'isbot';
 import {renderToReadableStream} from 'react-dom/server';
 import {createContentSecurityPolicy} from '@shopify/hydrogen';
+import { BASE_URL } from 'utils';
 
 export default async function handleRequest(
   request: Request,
@@ -11,8 +12,7 @@ export default async function handleRequest(
   remixContext: EntryContext,
   context: AppLoadContext,
 ) {
-  const backendURL = 'https://shopify-app-be-371114668585.asia-south1.run.app';
-  // const backendURL = 'http://127.0.0.1:8000';
+  const backendURL = BASE_URL;
 
   const {nonce, header, NonceProvider} = createContentSecurityPolicy({
     shop: {
