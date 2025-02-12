@@ -65,14 +65,6 @@ export function PageLayout({
 }
 
 
-function ProductAside() {
-  return (
-    <Aside type="product" heading="CART">
-      <Suspense fallback={<p>Loading cart ...</p>}>
-      </Suspense>
-    </Aside>
-  );
-}
 
 function MobileMenuAside({
   header,

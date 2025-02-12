@@ -54,7 +54,7 @@ export default function ProductCard({ product }: { product: Product }) {
                     <button
                         className="transition-all rounded-lg bg-gray-300 p-2 hover:bg-opacity-80"
                         onClick={() => {
-                            setProduct(null);
+                            setProduct(product);
                             setIsModalOpen(true);
                         }}
                     >
@@ -73,7 +73,7 @@ export default function ProductCard({ product }: { product: Product }) {
                         <p className="text-md font-bold text-gray-700 dark:text-gray-300">₹{product.amount}</p>
                     </div>
                 </div>
-                <div className="flex justify-between mt-4">
+                <div className="flex justify-end space-x-2 mt-4">
                     <button
                         className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400 transition-all"
                         onClick={() => {

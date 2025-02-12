@@ -1,6 +1,3 @@
-import strawberry
-from strawberry.asgi import GraphQL
-import requests
 import json
 from shopifyClient import shopify_client
 from fastapi import FastAPI, HTTPException
@@ -18,19 +15,10 @@ from sqlalchemy.orm import Session
 from fastapi import Depends
 from database import get_db
 # from create_product import create_product
-from test_prod2 import create_product
-
+from create_product import create_product
+from models import Product
 from schemas.add_product_validation import  Product
-# Define a simple GraphQL schema
-@strawberry.type
-class Query:
-    @strawberry.field
-    def hello(self) -> str:
-        return "Hello, GraphQL!"
-
-# Create a FastAPI app and integrate GraphQL
-schema = strawberry.Schema(Query)
-graphql_app = GraphQL(schema)
+import crud, models
 
 
 
@@ -65,12 +53,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.add_route("/graphql", graphql_app)
-app.add_websocket_route("/graphql", graphql_app)
-
 
 token = os.getenv("TOKEN")
-
+db=next(get_db())
 client = shopify_client()
 
 def verify_webhook(request: Request, body: bytes):
@@ -87,39 +72,20 @@ def verify_webhook(request: Request, body: bytes):
     # if not hmac.compare_digest(computed_hmac, hmac_header):
     #     raise HTTPException(status_code=403, detail="Unauthorized Webhook")
 
+
 @app.post("/webhook/product/create")
 async def handle_product_update(request: Request, db: Session = Depends(get_db)):
     """Receives product creation update from Shopify and updates the database."""
     body = await request.body()
-    print("body", body)
     verify_webhook(request, body)  # Validate webhook authenticity
     
     payload = await request.json()
-    shopify_id = payload.get("id")
-    title = payload.get("title")
-    # updated_at = payload.get("updated_at")
-    price = payload.get("variants")[0]["price"]
-    
-    # Update product in database
-    # product = db.query(Product).filter_by(shopify_id=shopify_id).first()
+    print("body", payload)
 
-
-    print("price", price)
-    # if product:
-    #     product.title = title
-    #     product.updated_at = updated_at
-    #     product.price = float(price)
-    # else:
-    #     db.add(Product(
-    #         shopify_id=shopify_id,
-    #         title=title,
-    #         updated_at=updated_at,
-    #         price=float(price)
-    #     ))
-
-    # db.commit()
+    crud.insert_webhook_product(db=db, product_data=payload)
     
     return {"message": "Product updated successfully"}
+
 
 
 @app.get("/products")
@@ -157,26 +123,8 @@ def get_products():
         "status": "Success",
         "data": cleaned_data
     })
-# Run the server with: uvicorn server:app --reload
 
 
-
-# @app.post("/add-product")
-# async def add_product(product: Product):    
-#     try:
-#         print("product", product)
-#         client = shopify_client()
-#         print("client initiated")
-#         product_id = await create_product(client=client, product=product)
-#         return {
-#             "message": "Product created successfully",
-#             "product_id": product_id,
-#             # "variant_id": variant_id
-#         }
-
-#     except Exception as e:
-#         print("Debug - Exception:", str(e))
-#         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/add-product")
 async def add_product(product: Product):    
@@ -184,10 +132,12 @@ async def add_product(product: Product):
         
         client = shopify_client()
         print("client initiated")
-        product_id = await create_product(client=client, product=product)
+        product = await create_product(client=client, product=product)
+        # if product
+        crud.create_product_db( db=db ,product_data=json.loads(product))
         return {
             "message": "Product created successfully",
-            "product_id": product_id,
+            "product_id": product,
         }
 
     except Exception as e:
@@ -201,27 +151,42 @@ class DeleteProduct(BaseModel):
 @app.post("/delete-product")
 async def delete_product(product: DeleteProduct):
 
-    mutation = f"""
-    mutation {{
-        productDelete(input: {{id: "{product.id}"}}) {{
-            deletedProductId
-            userErrors {{
-            field
-            message
+    try:
+        mutation = f"""
+        mutation {{
+            productDelete(input: {{id: "{product.id}"}}) {{
+                deletedProductId
+                userErrors {{
+                field
+                message
+                }}
             }}
         }}
-    }}
-    """
+        """
 
 
-    client = shopify_client()
-    data = json.loads(client.execute(mutation))
+        client = shopify_client()
+        data = json.loads(client.execute(mutation))
 
-    return JSONResponse({
-        "status": "Success",
-        "data": "Product Successfuly Deleted"
-    })
+        deleted = crud.delete_product(db=db, id=product.id)
 
+        if(deleted != True):
+            return JSONResponse({
+                "status": "Success",
+                "data": "Product Successfuly Deleted from Shopify, DB update failed"
+            })
+        
+        
+        return JSONResponse({
+            "status": "Success",
+            "data": "Product Successfuly Deleted"
+        })
+    
+    except Exception as e:
+        return JSONResponse({
+            "status": "Fail",
+            "data": "Product Delete UnSuccessfull"
+        })
 
 
 class UpdateProduct(BaseModel):
@@ -345,6 +310,20 @@ async def get_product(id: str):
                             altText
                             width
                             height
+                        }}
+                    }}
+                    variants(first: 10) {{
+                        edges {{
+                            node {{
+                            id
+                            title
+                            price
+                            sku
+                            selectedOptions {{
+                                name
+                                value
+                            }}
+                            }}
                         }}
                     }}
                 }} 

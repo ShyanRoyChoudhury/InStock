@@ -1,101 +1,98 @@
 from fastapi import HTTPException
-import json
 
 
+def format_graphql_input(data):
+    """Format Python dictionaries/lists into a GraphQL object string."""
+    if isinstance(data, dict):
+        return "{" + ", ".join(f"{key}: {format_graphql_input(value)}" for key, value in data.items()) + "}"
+    elif isinstance(data, list):
+        return "[" + ", ".join(format_graphql_input(item) for item in data) + "]"
+    elif isinstance(data, str):
+        return f"\"{data}\""  # Ensure proper string quoting
+    else:
+        return str(data)
 def map_data(product):
-    product_options = [
-        {
+    # Extract product options from the product's variant structure
+    product_options = []
+    option_name_map = {}  # Store option names with their GraphQL reference
+
+    for option in product.variant:
+        option_entry = {
             "name": option.name,
             "values": [{"name": value.name} for value in option.value]
         }
-        for option in product.variant
-    ]
+        product_options.append(option_entry)
+        option_name_map[option.name] = option_entry  # Store mapping
 
+    # Ensure the variants reference only existing product options
     variants = []
     for price_item in product.price:
-        option_values = [
-            {"optionName": key, "name": value}
-            for key, value in price_item.variant.items()
-        ]
+        option_values = []
+
+        for key, value in price_item.variant.items():
+            if key in option_name_map:  # ✅ Ensure the option exists before adding
+                option_values.append({
+                    "optionName": key,  # ✅ Corrected structure
+                    "name": value
+                })
+            else:
+                print(f"⚠️ Warning: Option '{key}' does not exist in product options.")
 
         variants.append({
-            "optionValues": option_values,
-            "price": int(float(price_item.amount) * 100)  # Convert Decimal to int
+            "optionValues": option_values,  # ✅ Ensuring valid option references
+            "price": int(float(price_item.amount)/100)  
         })
 
-    return {
+    # Wrap the product data
+    product_data = {
         "title": product.title,
-        "descriptionHtml": product.description,  # Use dot notation
+        "descriptionHtml": product.description or "",
         "productOptions": product_options,
         "variants": variants
     }
 
+    return format_graphql_input(product_data)  # ✅ Ensure proper GraphQL object format
+
 
 async def create_product(client, product):
-    product_mutation = """
-    mutation CreateProductWithOptions($input: ProductInput!) {
-        productSet(
-            synchronous: true,
-            input: $input
-        ) {
-            product {
-                id
-                title
-                options {
-                    id
-                    name
-                    position
-                    values
-                }
-                variants(first: 5) {
-                    edges {
-                        node {
-                            id
-                            selectedOptions {
-                                name
-                                value
-                            }
-                        }
-                    }
-                }
-            }
-            userErrors {
-                field
-                message
-            }
-        }
-    }
-    """
-
     try:
-
-        variables = {
-            "input": map_data(product=product)
-        }
-
-        product_result = client.execute(
-            product_mutation, 
-            variables=variables
-        )
-        print("product_result", product_result)
-        if not product_result:
-            raise HTTPException(status_code=400, detail="Failed to create product")
-
-        result_data = json.loads(product_result) if isinstance(product_result, str) else product_result
+        mapped = map_data(product=product)
+        product_mutation = f"""
+        mutation CreateProductWithOptions {{
+            productSet(
+                synchronous: true,
+                input: {mapped}
+            ) {{
+                product {{
+                    id
+                    title
+                    options {{
+                        id
+                        name
+                        position
+                        values
+                    }}
+                    variants(first: 5) {{
+                        edges {{
+                            node {{
+                                id
+                                selectedOptions {{
+                                    name
+                                    value
+                                }}
+                            }}
+                        }}
+                    }}
+                }}
+                userErrors {{
+                    field
+                    message
+                }}
+            }}
+        }}
+        """
+        product_result = client.execute(product_mutation)
+        return product_result
         
-        # Check for user errors
-        if result_data.get('userErrors') and len(result_data['userErrors']) > 0:
-            raise HTTPException(
-                status_code=400,
-                detail=result_data['userErrors'][0]['message']
-            )
-
-        return result_data['product']
-
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-
-
-
-
-

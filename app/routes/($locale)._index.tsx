@@ -1,5 +1,5 @@
 import {defer, type LoaderFunctionArgs} from '@shopify/remix-oxygen';
-import {Await, useLoaderData, Link, type MetaFunction} from '@remix-run/react';
+import {Await, useLoaderData, Link, type MetaFunction, useNavigate} from '@remix-run/react';
 import {Suspense} from 'react';
 import {Image, Money} from '@shopify/hydrogen';
 import type {
@@ -56,14 +56,14 @@ function loadDeferredData({context}: LoaderFunctionArgs) {
 }
 
 export default function Homepage() {
-  const data = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
   return (
     <div className="home relative md:p-8">
       {/* <FeaturedCollection collection={data.featuredCollection} /> */}
       {/* <RecommendedProducts products={data.recommendedProducts} /> */}
       <div className='z-0 md:p-4 pt-20 '>
-        <Image className='hidden lg:block rounded-xl' src='app/assets/pexels-rachel-claire-5863630.jpg'/>
-        <Image className='lg:hidden rounded-xl' src='app/assets/pexels-karolina-grabowska-4464817.jpg'/>
+        <Image className='hidden lg:block rounded-xl' src='/pexels-rachel-claire-5863630.jpg'/>
+        <Image className='lg:hidden rounded-xl' src='/pexels-karolina-grabowska-4464817.jpg'/>
 
       </div>
       <div className="absolute md:top-2/4 top-2/4 lg:top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full">
@@ -74,7 +74,16 @@ export default function Homepage() {
           </h1>
         </div>
       </div>
+
+      <div className='absolute top-3/4 lg:top-3/4 left-1/2  '>
+        <div className='bg-white  rounded-lg opacity-60 hover:scale-120 hover:bg-gray-300 cursor-pointer px-8 py-2 text transform -translate-x-1/2 -translate-y-1/2'>
+          <div className='opacity-100  text-xl font-semibold text-gray-700 text-nowrap'
+            onClick={()=>navigate('/inventory')}
+          >Handle Inventory</div>
+        </div>
+      </div>
     </div>
+    
   );
 }
 

@@ -6,6 +6,7 @@ import { useProductContext } from 'contexts/ProductContext';
 import { useProductFormContext } from 'contexts/ProductFormContext';
 import { editProduct } from '~/api/editProduct';
 import { createProduct } from '~/api/createProduct';
+import { PopUpContext } from 'contexts/PopupContext';
 
 const ProductModal = ({ onSubmit }) => {
     const { product, setProduct } = useProductContext();
@@ -154,12 +155,18 @@ const ProductModal = ({ onSubmit }) => {
 
     const mode = product ? "Edit" : "Add";
     const labelClassName = 'text-gray-100 pl-1.5 font-semibold';
+    const context = useContext(PopUpContext);
+    if (!context) {
+    throw new Error("PopUpContext must be used within a PopUpProvider");
+    }
+    const { isModalOpen, setIsModalOpen } = context;
 
     return (
         <div>
             {isProductFormModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 max-h-screen">
                     <div className="relative w-full max-w-md p-4 max-h-screen overflow-scroll">
+
                         <div className="relative bg-white rounded-lg shadow-lg">
                             <button
                                 onClick={closeModal}
@@ -282,7 +289,7 @@ const ProductModal = ({ onSubmit }) => {
                                     <div className="flex justify-between">
                                         <button
                                             type="submit"
-                                            className="bg-blue-500 text-white px-4 py-2 rounded"
+                                            className="bg-black cursor-pointer space-x-1.5 flex text-white px-2 py-1.5 rounded-lg"
                                             onClick={async () => {
                                                 if (mode === 'Edit') {
                                                     if (product) {
@@ -291,6 +298,7 @@ const ProductModal = ({ onSubmit }) => {
                                                 } else {
                                                     await createProduct(formData);
                                                 }
+                                                setIsModalOpen(false)
                                             }}
                                         >
                                             {mode === "Edit" ? 'Edit' : 'Add Product'}

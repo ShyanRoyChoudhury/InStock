@@ -1,43 +1,52 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text, Float, Time
+# coding: utf-8
+from sqlalchemy import CHAR, Column, DECIMAL, ForeignKey, String, text, Boolean
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID
-
-
-
+from sqlalchemy.ext.declarative import declarative_base
 import uuid
-from database import Base
+
+Base = declarative_base()
+metadata = Base.metadata
+
 
 class Product(Base):
-    __tablename__ = "product"
-    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
-    shopify_id = Column(String(255),index=True)
-    title = Column(String(255),index=True)
-    description = Column(String(255))
-    is_deleted = Column(Boolean,default=False)
-    amount = Column(Float, default=0.0)
+    __tablename__ = 'Products'
 
-    images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan")
-    variant = relationship("ProductVariant", back_populates="product", cascade="all, delete-orphan")
+    id = Column(CHAR(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    shopifyProductId = Column(String(50), nullable=False, unique=True)
+    title = Column(String(50))
+    description = Column(String(500))
+    deleted = Column(Boolean, default=lambda: False) 
 
 
-class ProductImage(Base):
-    __tablename__ = "productImage"
-    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
-    shopify_id = Column(String(255),index=True)
-    url = Column(Text)
-    product_id = Column(Integer, ForeignKey("product.id"))
+class Variant(Base):
+    __tablename__ = 'Variant'
 
-    product = relationship("Product", back_populates="images")
+    id = Column(CHAR(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    shopifyVariantId = Column(String(50), nullable=False)
+    productId = Column(ForeignKey('Products.id'), nullable=False, index=True)
+    name = Column(String(50))
+    deleted = Column(Boolean, default=lambda: False) 
+
+    Product = relationship('Product')
 
 
-class ProductVariant(Base):
-    __tablename__ = "productVariant"
-    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
-    shopify_id = Column(String(255),index=True)
-    title = Column(String(255),index=True)
-    price = Column(Float, default=0.0)
-    url = Column(Text)
-    product_id = Column(Integer, ForeignKey("product.id"))
-    created_at = Column(Time)
+class VariantValue(Base):
+    __tablename__ = 'VariantValue'
 
-    product = relationship("Product", back_populates="variant")
+    id = Column(CHAR(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    variantId = Column(ForeignKey('Variant.id'), nullable=False, index=True)
+    value = Column(String(50), nullable=False)
+    deleted = Column(Boolean, default=lambda: False)
+
+    Variant = relationship('Variant')
+
+
+class VariantPrice(Base):
+    __tablename__ = 'VariantPrice'
+
+    id = Column(CHAR(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    variantValueId = Column(ForeignKey('VariantValue.id'), nullable=False, index=True)
+    price = Column(DECIMAL(10, 2), nullable=False)
+    deleted = Column(Boolean, default=lambda: False)
+
+    VariantValue = relationship('VariantValue')

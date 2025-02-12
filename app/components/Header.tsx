@@ -63,7 +63,7 @@ export function HeaderMenu({
   const menuItems = {
     items: [
       { id: '1', title: 'Inventory', url: '/inventory' },
-      { id: '2', title: 'Products', url: '/products/' },
+      // { id: '2', title: 'Products', url: '/products/' }, 
     ],
   };
 

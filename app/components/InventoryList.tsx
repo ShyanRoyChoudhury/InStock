@@ -18,7 +18,7 @@ function InventoryList() {
                 id: product.node.id,
                 title: product.node.title,
                 description: product.node.description,
-                image: product.node.featuredImage?.url || "app/assets/photo.png",
+                image: product.node.featuredImage?.url || "/photo.png",
                 amount: product.node.priceRange.maxVariantPrice.amount,
                 handle: product?.node?.handle
             }));
