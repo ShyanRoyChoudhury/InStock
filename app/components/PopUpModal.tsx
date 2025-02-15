@@ -15,7 +15,7 @@ const Modal = () => {
     throw new Error("PopUpContext must be used within a PopUpProvider");
     }
     const { isModalOpen, setIsModalOpen } = context;
-    const { product, } = productContext;
+    const { product, setProduct } = productContext;
     const { setProductList } = productListContext;
     const closeModal = async() => {
         setIsModalOpen(false);
@@ -41,6 +41,7 @@ const Modal = () => {
                     }));
         
                     setProductList(cleanedRes);
+                    setProduct(null)
                 }
             }
           }

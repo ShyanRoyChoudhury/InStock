@@ -7,11 +7,13 @@ import { useProductFormContext } from 'contexts/ProductFormContext';
 import { editProduct } from '~/api/editProduct';
 import { createProduct } from '~/api/createProduct';
 import { PopUpContext } from 'contexts/PopupContext';
+import { getProducts } from '~/api/getProductList';
+import { ProductListContext, useProductListContext } from 'contexts/ProductListContext';
 
-const ProductModal = ({ onSubmit }) => {
+const ProductModal = () => {
     const { product, setProduct } = useProductContext();
     const { isProductFormModalOpen, setIsProductFormModalOpen } = useProductFormContext();
-
+    const { setProductList } = useProductListContext();
     const closeModal = () => {
         setIsProductFormModalOpen(false);
         setProduct(null);
@@ -148,10 +150,7 @@ const ProductModal = ({ onSubmit }) => {
         });
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        onSubmit(formData);
-    };
+    
 
     const mode = product ? "Edit" : "Add";
     const labelClassName = 'text-gray-100 pl-1.5 font-semibold';
@@ -159,7 +158,27 @@ const ProductModal = ({ onSubmit }) => {
     if (!context) {
     throw new Error("PopUpContext must be used within a PopUpProvider");
     }
-    const { isModalOpen, setIsModalOpen } = context;
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+            await createProduct(formData);
+            setIsProductFormModalOpen(false)
+                const res = await getProducts()
+                if(res!== null) {
+                    const cleanedRes = res?.data?.map((product: any) => ({
+                        totalInventory: product.node.totalInventory,
+                        id: product.node.id,
+                        title: product.node.title,
+                        description: product.node.description,
+                        image: product.node.featuredImage?.url || "/photo.png",
+                        amount: product.node.priceRange.maxVariantPrice.amount,
+                        handle: product?.node?.handle
+                    }));
+        
+                    setProductList(cleanedRes);
+                    setProduct(null)
+                }
+    };
 
     return (
         <div>
@@ -290,16 +309,6 @@ const ProductModal = ({ onSubmit }) => {
                                         <button
                                             type="submit"
                                             className="bg-black cursor-pointer space-x-1.5 flex text-white px-2 py-1.5 rounded-lg"
-                                            onClick={async () => {
-                                                if (mode === 'Edit') {
-                                                    if (product) {
-                                                        await editProduct(formData, product.id);
-                                                    }
-                                                } else {
-                                                    await createProduct(formData);
-                                                }
-                                                setIsModalOpen(false)
-                                            }}
                                         >
                                             {mode === "Edit" ? 'Edit' : 'Add Product'}
                                         </button>
